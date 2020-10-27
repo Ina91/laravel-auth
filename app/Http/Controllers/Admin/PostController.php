@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 use App\Post;
+use App\Tag;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class PostController extends Controller
 {
@@ -16,7 +19,7 @@ class PostController extends Controller
      */
     public function index()
     {
-        $posts = Post::where('user_id',Auth::id())->orderBy('created_at','desc')->get();
+        $posts = Post::where('user_id',Auth::id())->orderBy('created_at','desc')->paginate(5);
         return view('admin.posts.index',compact('posts'));
     }
 
@@ -27,7 +30,8 @@ class PostController extends Controller
      */
     public function create()
     {
-        return view('admin.posts.create');
+        $tags= Tag::all();
+       return view('admin.posts.create',compact('tags'));
     }
 
     /**
@@ -40,16 +44,30 @@ class PostController extends Controller
     {
         $request->validate([
             'title'=>'required|min:5|max:100',
-            'body'=>'required|min:5|max:500'
+            'body'=>'required|min:5|max:500',
+            'img'=> 'image'
         ]);
         $data =$request->all();
         $data['user_id']= Auth::id();
         $data['slug']= Str::slug($data['title'],'-');
+
         $newPost = new Post();
+
+        if (!empty($data['img'])) {
+
+            $data['img'] = Storage::disk('public')->put('images',$data['img']);
+        }
+
         $newPost->fill($data);
+
         $saved=$newPost->save();
+
+        if (!empty($data['tags'])){
+            $newPost->tags()->attach($data['tags']);
+        }
+
         if ($saved) {
-            return redirect()->route('posts.index');
+            return redirect()->route('posts.index')->with('insert','Hai inserito correttamente il post.');
         }
     }
 
@@ -61,7 +79,8 @@ class PostController extends Controller
      */
     public function show(Post $post)
     {
-        //
+        $post = Post::where('slug',$slug)->fist();
+        return view('admin.posts.show',compact('post'));
     }
 
     /**
@@ -72,7 +91,8 @@ class PostController extends Controller
      */
     public function edit(Post $post)
     {
-        //
+         $tags= Tag::all();
+        return view('admin.posts.edit',compact('post','tags'));
     }
 
     /**
@@ -84,7 +104,38 @@ class PostController extends Controller
      */
     public function update(Request $request, Post $post)
     {
-        //
+        $request->validate([
+            'title' => 'required|min:5|max:100',
+            'body' => 'required|min:5|max:500',
+        ]);
+
+        $data=$request->all();
+        $data['slug']= Str::slug($data['title'],'-');
+        $data['updated_at']= Carbon::now('Europe/Rome');
+
+        if (!empty($data['tags'])) {
+
+            $post->tags()->sync($data['tags']);
+        }else{
+            $post->tags()->detach();
+        }
+
+        if (!empty($data['img'])) {
+
+            if (!empty($post->img)) {
+                Storage::disk('public')->delete($post->img);
+            }
+            $data['img'] = Storage::disk('public')->put('images',$data['img']);
+        }
+
+        $updated = $post->update($data);
+
+        if ($updated) {
+            return  redirect()->route('posts.index')->with('update','Hai modificato correttamente il post del id ' . $post->id);
+        }
+
+
+
     }
 
     /**
