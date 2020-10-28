@@ -40,7 +40,7 @@
                     <ul class="navbar-nav ml-auto">
                         <!-- Authentication Links -->
                         <li class="nav-item">
-                             <a class="nav-link" href="{{route('posts.create')}}">Post</a>
+                             <a class="nav-link" href="{{route('posts.guest.home')}}">Post</a>
                         </li>
                         @guest
                             <li class="nav-item">
@@ -58,6 +58,8 @@
                                 </a>
 
                                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
+                                    <a class="dropdown-item" href="{{route('posts.index')}}">I miei Posts</a>
+                                    <a class="dropdown-item" href="{{route('posts.create')}}">Crea nuovo Post</a>
                                     <a class="dropdown-item" href="{{ route('logout') }}"
                                        onclick="event.preventDefault();
                                                      document.getElementById('logout-form').submit();">
